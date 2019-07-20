@@ -86,3 +86,64 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+_SRC:=../
+
+install-gui:
+	conda install -y numpy 'jupyterlab<1.0' python=3.6 nodejs
+	conda install -y -c conda-forge -c cadquery pyparsing pythonocc-core
+	pip install --upgrade git+https://github.com/CadQuery/cadquery
+	pip install ipywidgets pythreejs sidecar dataclasses
+	jupyter labextension install @jupyter-widgets/jupyterlab-manager jupyter-threejs @jupyter-widgets/jupyterlab-sidecar
+	#pip install -e git+https://github.com/bernhard-42/jupyter-cadquery.git#egg=jupyter_cadquery
+	#cd '${_SRC}/jupyter-cadquery' && \
+	#	jupyter-labextension install js
+	cd '${_SRC}' && test -d jupyter-cadquery || git clone https://github.com/bernhard-42/jupyter-cadquery.git
+	cd '${_SRC}/jupyter-cadquery' && pip install .
+	cd '${_SRC}/jupyter-cadquery' && jupyter-labextension install js
+
+install-cqeditor:
+	conda install -y -c cadquery cq-editor
+
+install-cqeditor-ubuntu:
+	sudo apt install libglu1-mesa libgl1-mesa-dri mesa-common-dev libglu1-mesa-dev
+	$(MAKE) install-cqeditor
+
+notebook:
+	jupyter-notebook --ip=127.0.0.2
+
+lab:
+	jupyter-lab --ip=127.0.0.3
+
+
+JUPYTERLAB_VERSION=1.0
+IMAGE=bernhard-42/jupyter-cadquery-${JUPYTERLAB_VERSION}:0.9.1
+
+docker-build:
+	cd '${_SRC}/jupyter-cadquery' && \
+		docker build --build-arg jl_version=${JUPYTERLAB_VERSION} -t ${IMAGE} .
+		docker build -t bernhard-42/jupyter-cadquery .
+
+WORKDIR=/tmp/jupyter
+WORKDIR=$(shell pwd)
+docker-run:
+	docker run -it --rm -v ${WORKDIR}:/data/workdir -p 8889:8888 ${IMAGE}
+	#docker run -it --rm -v cq-data:/data -p 8889:8888 bernhard-42/jupyter-cadquery:latest
+
+vagrant-install-plugin-vbguest:
+	vagrant plugin install vagrant-vbguest
+
+vagrant-install-plugin-cachier:
+	vagrant plugin install vagrant-cachier
+
+vagrant-up:
+	vagrant up
+
+vagrant-provision:
+	vagrant provision
+
+vagrant-package:
+	vagrant package --vagrantfile ./Vagrantfile --output ubuntu_bionic64_miniconda_xfce.box
+
+vagrant-ssh:
+	vagrant ssh
